@@ -77,9 +77,10 @@ def YOLO():
         except Exception:
             pass
     #you will need to start `rtsp server` using god.sh script XD
-    #cap = cv2.VideoCapture('rtsp://user:userpassword@192.168.0.16:8554/anrp_stream')
+    cap = cv2.VideoCapture('rtsp://user:userpassword@192.168.0.16:8554/live.sdp')
+    #cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
     #cap = cv2.VideoCapture("test.mp4")
-    cap = cv2.VideoCapture(0)
+    #cap = cv2.VideoCapture(0)
     cap.set(3, darknet.network_height(netMain))
     cap.set(4, darknet.network_width(netMain))
     #out = cv2.VideoWriter(
@@ -91,7 +92,7 @@ def YOLO():
     darknet_image = darknet.make_image(darknet.network_width(netMain),
                                     darknet.network_height(netMain),3)
     while True:
-        #print('fps: ',str(cap.get(cv2.CAP_PROP_FPS)))
+        print('fps: ',str(cap.get(cv2.CAP_PROP_FPS)))
         prev_time = time.time()
         ret, frame_read = cap.read()
         frame_rgb = cv2.cvtColor(frame_read, cv2.COLOR_BGR2RGB)
@@ -107,12 +108,12 @@ def YOLO():
         image = cvDrawBoxes(detections, frame_resized)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 #!!
-        #print(1/(time.time()-prev_time))
+        print(1/(time.time()-prev_time))
         #if (detections == []) :
         #    pass
         #else:
         #    print(detections[0][0])
-        #    print("confidence : ", str(detections[0][1]))
+        #    print("class : ", str(detections[0]))
         #    print("you need to edit these points : " , str(detections[0][2][0]), str(detections[0][2][1]))
 
         cv2.imshow('Demo', image)

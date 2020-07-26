@@ -12,7 +12,7 @@ running_pid=$(sudo lsof -i:$port | awk 'NR==2 {print $2}')
 serve_server(){
     ./rtsp-simple-server & echo $(date +%s) $! > rtsp.pid
     echo "server is started."
-    ffmpeg -f v4l2 -i /dev/video0 -f rtsp rtsp://$admin_username:$admin_password@$host:$port/$end_point
+    ffmpeg -f v4l2 -i /dev/video0 -f rtsp rtsp://admin:adminpassword@0.0.0.0:8554/stream_anpr
     echo "webcam is published on: http://"$host_port/$end_point
 }
 terminate_server(){

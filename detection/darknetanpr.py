@@ -58,7 +58,7 @@ def network_width(net):
 def network_height(net):
     return lib.network_height(net)
 
-hasGPU=False
+hasGPU=True
 if hasGPU:
     set_gpu = lib.cuda_set_device
     set_gpu.argtypes = [c_int]
