@@ -33,16 +33,16 @@ paths:
     sourceProtocol: udp
 
     # username required to publish
-    publishUser:
+    publishUser: 
     # password required to publish
-    publishPass:
+    publishPass: 
     # IPs or networks (x.x.x.x/24) allowed to publish
     publishIps: []
 
     # username required to read
-    readUser:
+    readUser: 
     # password required to read
-    readPass:
+    readPass: 
     # IPs or networks (x.x.x.x/24) allowed to read
     readIps: []
 
