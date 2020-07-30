@@ -2,7 +2,7 @@ import os
 import cv2
 import time
 import darknetanpr as darknet
-
+import imutils, imagezmq
 def convertBack(x, y, w, h):
     xmin = int(round(x - (w / 2)))
     xmax = int(round(x + (w / 2)))
@@ -77,24 +77,26 @@ def YOLO():
         except Exception:
             pass
     #you will need to start `rtsp server` using god.sh script XD
-    cap = cv2.VideoCapture('rtsp://user:userpassword@192.168.0.16:8554/live.sdp')
+    #cap = cv2.VideoCapture('rtsp://user:userpassword@192.168.0.16:8554/live.sdp')
     #cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
-    #cap = cv2.VideoCapture("test.mp4")
     #cap = cv2.VideoCapture(0)
-    cap.set(3, darknet.network_height(netMain))
-    cap.set(4, darknet.network_width(netMain))
+    #cap.set(3, darknet.network_height(netMain))
+    #cap.set(4, darknet.network_width(netMain))
     #out = cv2.VideoWriter(
     #    "output.avi", cv2.VideoWriter_fourcc(*"MJPG"), 10.0,
     #    (darknet.network_width(netMain), darknet.network_height(netMain)))
+    imageHub = imagezmq.ImageHub()
     print("Starting the YOLO loop...")
 
     # Create an image we reuse for each detect
     darknet_image = darknet.make_image(darknet.network_width(netMain),
                                     darknet.network_height(netMain),3)
     while True:
-        print('fps: ',str(cap.get(cv2.CAP_PROP_FPS)))
+        #print('fps: ',str(cap.get(cv2.CAP_PROP_FPS)))
         prev_time = time.time()
-        ret, frame_read = cap.read()
+        #ret, frame_read = cap.read()
+        (rpiName, frame_read) = imageHub.recv_image()
+        imageHub.send_reply(b'OK')
         frame_rgb = cv2.cvtColor(frame_read, cv2.COLOR_BGR2RGB)
         frame_resized = cv2.resize(frame_rgb,
                                    (darknet.network_width(netMain),
