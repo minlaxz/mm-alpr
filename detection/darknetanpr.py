@@ -6,6 +6,7 @@
 @CAPI: https://github.com/AlexeyAB/darknet/blob/master/include/darknet.h
 @authorOfYolo: https://pjreddie.com/darknet
 @adaptedProject: (TTU-2019-2020-EC)-Final Year Project-Group-22
+## Adapted with ImageZMQ
 """
 
 from ctypes import *

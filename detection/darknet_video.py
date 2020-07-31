@@ -10,31 +10,14 @@ def convertBack(x, y, w, h):
     ymax = int(round(y + (h / 2)))
     return xmin, ymin, xmax, ymax
 
-
-def cvDrawBoxes(detections, img):
-    for detection in detections:
-        x, y, w, h = detection[2][0],\
-            detection[2][1],\
-            detection[2][2],\
-            detection[2][3]
-        xmin, ymin, xmax, ymax = convertBack(
-            float(x), float(y), float(w), float(h))
-        pt1 = (xmin, ymin)
-        pt2 = (xmax, ymax)
-        cv2.rectangle(img, pt1, pt2, (0, 255, 0), 1)
-        cv2.putText(img,
-                    detection[0].decode() +
-                    " [" + str(round(detection[1] * 100, 2)) + "]",
-                    (pt1[0], pt1[1] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                    [0, 255, 0], 2)
-    
-    return img[ymin:ymax, xmin:xmax] if detections else img
-
+def cropDetected(detections, img):
+    for d in detections:
+        xmin, ymin, xmax, ymax = convertBack(float(d[2][0]), float(d[2][1]), float(d[2][2]), float(d[2][3]))
+        return img[ymin:ymax, xmin:xmax] if detections else None
 
 netMain = None
 metaMain = None
 altNames = None
-
 
 def YOLO():
 
@@ -76,53 +59,73 @@ def YOLO():
                     pass
         except Exception:
             pass
-    #you will need to start `rtsp server` using god.sh script XD
-    #cap = cv2.VideoCapture('rtsp://user:userpassword@192.168.0.16:8554/live.sdp')
-    #cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
-    #cap = cv2.VideoCapture(0)
-    #cap.set(3, darknet.network_height(netMain))
-    #cap.set(4, darknet.network_width(netMain))
-    #out = cv2.VideoWriter(
+
+    # cap = cv2.VideoCapture('rtsp://user:userpassword@192.168.0.16:8554/live.sdp')
+    # cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
+    
+    # cap = cv2.VideoCapture(0)
+    # cap.set(3, darknet.network_height(netMain))
+    # cap.set(4, darknet.network_width(netMain))
+    
+    # out = cv2.VideoWriter(
     #    "output.avi", cv2.VideoWriter_fourcc(*"MJPG"), 10.0,
     #    (darknet.network_width(netMain), darknet.network_height(netMain)))
+    
     imageHub = imagezmq.ImageHub()
     print("Starting the YOLO loop...")
 
     # Create an image we reuse for each detect
     darknet_image = darknet.make_image(darknet.network_width(netMain),
                                     darknet.network_height(netMain),3)
+    count = 0
     while True:
         #print('fps: ',str(cap.get(cv2.CAP_PROP_FPS)))
         prev_time = time.time()
-        #ret, frame_read = cap.read()
-        (rpiName, frame_read) = imageHub.recv_image()
+        #_, frame_read = cap.read()
+        _, frame_read = imageHub.recv_image()
         imageHub.send_reply(b'OK')
         frame_rgb = cv2.cvtColor(frame_read, cv2.COLOR_BGR2RGB)
         frame_resized = cv2.resize(frame_rgb,
                                    (darknet.network_width(netMain),
                                     darknet.network_height(netMain)),
-                                   interpolation=cv2.INTER_LINEAR)
+                                   interpolation=cv2.INTER_LINEAR) # image is already resized by sender (client) (512, 416)
 
         darknet.copy_image_from_bytes(darknet_image,frame_resized.tobytes())
 
-        detections = darknet.detect_image(netMain, metaMain, darknet_image, thresh=0.25)
-#!
-        image = cvDrawBoxes(detections, frame_resized)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-#!!
-        print(1/(time.time()-prev_time))
-        #if (detections == []) :
-        #    pass
-        #else:
-        #    print(detections[0][0])
-        #    print("class : ", str(detections[0]))
-        #    print("you need to edit these points : " , str(detections[0][2][0]), str(detections[0][2][1]))
+        detections = darknet.detect_image(netMain, metaMain, darknet_image, thresh=0.75)
 
-        cv2.imshow('Demo', image)
-        if cv2.waitKey(10) & 0xFF == ord('q'):
-            break
-    cap.release()
-    #out.release()
+        # image = cvDrawBoxes(detections, frame_resized)
+        if detections:
+            if detections[0][1] > 0.95:
+                count += 1
+                print(count)
+                if count == 20:
+                    image = cropDetected(detections, frame_resized)
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                    #cv2.imwrite('image.jpg', image)
+                    print(detections[0][1])
+                    return image            ## This will handle by @Katsura \
+                    # you will need to call this module's YOLO() without any args. \
+                    # grab something like image  = YOLO()
+                    break
+                else: pass
+            else: count = count - 3 #rarely 
+        else: count = 0
 
-if __name__ == "__main__":
-    YOLO()
+
+        # print('time',1/(time.time()-prev_time))
+        # if (detections == []) :
+        #     pass
+        # else:
+        #     print("class : ", str(detections[0][0]))
+        #     print("x y w h : " , str(detections[0][2]))
+        
+        # cv2.imshow(Name, image)
+        # if cv2.waitKey(10) & 0xFF == ord('q'):
+        #     break
+    # we do not need to release anything
+    # cap.release()
+    # out.release()
+
+# if __name__ == "__main__":
+#     YOLO()
