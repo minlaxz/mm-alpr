@@ -101,7 +101,7 @@ def YOLO():
                 print(count)
                 if count == 20:
                     image = cropDetected(detections, frame_resized)
-                    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                     #cv2.imwrite('image.jpg', image)
                     print(detections[0][1])
                     return image            ## This will handle by @Katsura \
