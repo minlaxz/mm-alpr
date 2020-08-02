@@ -8,7 +8,7 @@ debug = False
 server_host = '192.168.0.16'
 w, h = 512, 416
 
-sender_obj = imagezmq.ImageSender(connect_to='tcp://{}:5555'.format(server_host))
+image_sender = imagezmq.ImageSender(connect_to='tcp://{}:5555'.format(server_host))
 is_x64 = None
 if 'arm' in os.uname()[-1]:
     from imutils.video import VideoStream
@@ -35,7 +35,7 @@ try:
         if is_x64:
             _, image = camera.read()
         else: image = camera.read()
-        repl = sender_obj.send_image(clienthostname(), image)
+        repl = image_sender.send_image(clienthostname(), cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
         if (repl==b'STOP'):
             userAbord = True
             break
@@ -53,5 +53,5 @@ except Exception as ex:
 finally:
     print('User Stopped') if userAbord else print('Finally Exit')
     camera.release() if is_x64 else camera.stop()
-    sender_obj.close()
+    image_sender.close()
     exit() if is_x64 else sys.exit()
