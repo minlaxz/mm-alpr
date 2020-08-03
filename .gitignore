@@ -3,3 +3,5 @@ Recognition/dataset
 *.jpg
 rtsp.pid
 __pycache__
+test_code
+

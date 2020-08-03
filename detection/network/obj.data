@@ -1,6 +1,0 @@
-classes= 1
-train  = train.txt
-valid  = valid.txt
-names = network/obj.names
-backup = /mydrive/TRAINING-CASES/case-7-tiny/case-7-backup-weights
-
