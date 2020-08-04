@@ -45,7 +45,7 @@ class METADATA(Structure):
                 ("names", POINTER(c_char_p))]
     
 
-lib = CDLL("./detection/libdarknet.so", RTLD_GLOBAL)
+lib = CDLL("./libdarknet.so", RTLD_GLOBAL)
 lib.network_width.argtypes = [c_void_p]
 lib.network_width.restype = c_int
 lib.network_height.argtypes = [c_void_p]
@@ -102,6 +102,46 @@ predict_image.restype = POINTER(c_float)
 do_nms_sort = lib.do_nms_sort
 do_nms_sort.argtypes = [POINTER(DETECTION), c_int, c_int, c_float]
 
+def initialize_darknet():
+    global metaMain, netMain, altNames
+    configPath = "./network/yolov3-tiny_obj.cfg"
+    weightPath = "./network/yolov3-tiny_obj_best.weights"
+    metaPath = "./network/obj.data"
+    if not os.path.exists(configPath):
+        raise ValueError("Invalid config path `" +
+                         os.path.abspath(configPath)+"`")
+    if not os.path.exists(weightPath):
+        raise ValueError("Invalid weight path `" +
+                         os.path.abspath(weightPath)+"`")
+    if not os.path.exists(metaPath):
+        raise ValueError("Invalid data file path `" +
+                         os.path.abspath(metaPath)+"`")
+    if netMain is None:
+        netMain = load_net_custom(configPath.encode(
+            "ascii"), weightPath.encode("ascii"), 0, 1)  # batch size = 1
+    if metaMain is None:
+        metaMain = load_meta(metaPath.encode("ascii"))
+    if altNames is None:
+        try:
+            with open(metaPath) as metaFH:
+                metaContents = metaFH.read()
+                import re
+                match = re.search("names *= *(.*)$", metaContents,
+                                  re.IGNORECASE | re.MULTILINE)
+                if match:
+                    result = match.group(1)
+                else:
+                    result = None
+                try:
+                    if os.path.exists(result):
+                        with open(result) as namesFH:
+                            namesList = namesFH.read().strip().split("\n")
+                            altNames = [x.strip() for x in namesList]
+                except TypeError:
+                    pass
+        except Exception:
+            pass
+        
 def detect_image(net, meta, im, thresh=.5, hier_thresh=.5, nms=.45, debug= False):
     num = c_int(0)
     if debug: print("Assigned num")
@@ -162,58 +202,20 @@ netMain = None
 metaMain = None
 altNames = None
 
-def initialize_darknet():
-    global metaMain, netMain, altNames
-    configPath = "./detection/network/yolov3-tiny_obj.cfg"
-    weightPath = "./detection/network/yolov3-tiny_obj_best.weights"
-    metaPath = "./detection/network/obj.data"
-    if not os.path.exists(configPath):
-        raise ValueError("Invalid config path `" +
-                         os.path.abspath(configPath)+"`")
-    if not os.path.exists(weightPath):
-        raise ValueError("Invalid weight path `" +
-                         os.path.abspath(weightPath)+"`")
-    if not os.path.exists(metaPath):
-        raise ValueError("Invalid data file path `" +
-                         os.path.abspath(metaPath)+"`")
-    if netMain is None:
-        netMain = darknet.load_net_custom(configPath.encode(
-            "ascii"), weightPath.encode("ascii"), 0, 1)  # batch size = 1
-    if metaMain is None:
-        metaMain = darknet.load_meta(metaPath.encode("ascii"))
-    if altNames is None:
-        try:
-            with open(metaPath) as metaFH:
-                metaContents = metaFH.read()
-                import re
-                match = re.search("names *= *(.*)$", metaContents,
-                                  re.IGNORECASE | re.MULTILINE)
-                if match:
-                    result = match.group(1)
-                else:
-                    result = None
-                try:
-                    if os.path.exists(result):
-                        with open(result) as namesFH:
-                            namesList = namesFH.read().strip().split("\n")
-                            altNames = [x.strip() for x in namesList]
-                except TypeError:
-                    pass
-        except Exception:
-            pass
 count = 0
-def YOLO(frame_rgb):
+def YOLO(resized_rgb_frame):
     """ ("Starting the YOLO loop") """
     global count
     # Create an image we reuse for each detect
-    darknet_image = darknet.make_image(darknet.network_width(netMain),
-                                    darknet.network_height(netMain),3)
-    frame_resized = cv2.resize(frame_rgb,
-                                   (darknet.network_width(netMain),
-                                    darknet.network_height(netMain)),
-                                   interpolation=cv2.INTER_LINEAR) # image is already resized by sender (client) (512, 416)
-    darknet.copy_image_from_bytes(darknet_image,frame_resized.tobytes())
-    detections = darknet.detect_image(netMain, metaMain, darknet_image, thresh=0.75)
+    darknet_image = make_image(network_width(netMain),
+                                    network_height(netMain),3)
+    # frame_resized = cv2.resize(frame_rgb,
+    #                                (network_width(netMain),
+    #                                 network_height(netMain)),
+    #                                interpolation=cv2.INTER_LINEAR) # image is already resized by sender (client) (512, 416)
+    copy_image_from_bytes(darknet_image,resized_rgb_frame.tobytes())
+
+    detections = detect_image(netMain, metaMain, darknet_image, thresh=0.75)
     if detections:
         if detections[0][1] > 0.95:
             count += 1
