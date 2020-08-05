@@ -102,6 +102,10 @@ predict_image.restype = POINTER(c_float)
 do_nms_sort = lib.do_nms_sort
 do_nms_sort.argtypes = [POINTER(DETECTION), c_int, c_int, c_float]
 
+netMain = None
+metaMain = None
+altNames = None
+
 def initialize_darknet():
     global metaMain, netMain, altNames
     configPath = "./network/yolov3-tiny_obj.cfg"
@@ -198,22 +202,14 @@ def cropDetected(detections, img):
         xmin, ymin, xmax, ymax = convertBack(float(d[2][0]), float(d[2][1]), float(d[2][2]), float(d[2][3]))
         return img[ymin:ymax, xmin:xmax] # if detections else None
 
-netMain = None
-metaMain = None
-altNames = None
-
 count = 0
-def YOLO(resized_rgb_frame):
-    """ ("Starting the YOLO loop") """
+def YOLO(resized_rgb):
+    """ needs resized rgb frame """
     global count
-    # Create an image we reuse for each detect
-    darknet_image = make_image(network_width(netMain),
-                                    network_height(netMain),3)
-    # frame_resized = cv2.resize(frame_rgb,
-    #                                (network_width(netMain),
-    #                                 network_height(netMain)),
-    #                                interpolation=cv2.INTER_LINEAR) # image is already resized by sender (client) (512, 416)
-    copy_image_from_bytes(darknet_image,resized_rgb_frame.tobytes())
+
+    darknet_image = make_image(network_width(netMain),network_height(netMain),3)
+    """ image is already resized and rgb by sender (client) (w512, h416) """
+    copy_image_from_bytes(darknet_image,resized_rgb.tobytes())
 
     detections = detect_image(netMain, metaMain, darknet_image, thresh=0.75)
     if detections:
