@@ -1,11 +1,13 @@
-import os, imagezmq, cv2, traceback, sys, time
+import os, imagezmq, traceback, sys, time
 from PIL import Image, ImageTk
 import tkinter as tk
 import threading 
 """to handle multi thread processes."""
-import detector as dkv
+#import detector as dkv
 
 debug =  True
+do_detect = False
+
 
 # class Plate:
 #     def __init__(self,image_rgb):
@@ -16,12 +18,15 @@ debug =  True
 #         cv2.imshow('client_name', self.image)
 
 class Application:
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, do_detect=do_detect):
 
         self.debug = debug
-        self.dkv = dkv
+        self.do_detect = do_detect
+        #self.dkv = dkv
         """dakrnet is initialized here"""
-        self.dkv.initialize_darknet()
+        if self.do_detect:
+            self.dkv = dkv
+            self.dkv.initialize_darknet()
 
         self.image_hub = imagezmq.ImageHub()
 
@@ -44,23 +49,24 @@ class Application:
 
     def master_loop(self):
         # 
+        self.text.set('not pressed.')
         client_name, resized_rgb = self.image_hub.recv_image()
         """ We need to process received image here """
-        detections = self.dkv.YOLO(resized_rgb)
+        if self.do_detect:
+            detections  = self.dkv.YOLO(resized_rgb)
+            self.text.set("Detected.") if detections else self.text.set("Nothing.")
 
-        if detections:
-            self.text.set("Detected")
-            x = threading.Thread(target=self.thread_func, args=(1,), daemon=False)
-            if x.is_alive():
-                self.debug: print('current thread is on going.')
-            else:
-                x.start()
-                self.debug: print('started another thread.')
-            print("Main : main thread done.")
-        else:
-            self.text.set('Nothing')
-
-        #self.text.set("Detected.") if detections else self.text.set("Nothing.")
+        #if detections:
+        #    self.text.set("Detected")
+        #    x = threading.Thread(target=self.thread_func, args=(1,), daemon=False)
+        #    if x.is_alive():
+        #        self.debug: print('current thread is on going.')
+        #    else:
+        #        x.start()
+        #        self.debug: print('started another thread.')
+        #    print("Main : main thread done.")
+        #else:
+        #    self.text.set('Nothing')
 
         self.current_image = Image.fromarray(resized_rgb)
         self.client_name = client_name
@@ -79,7 +85,7 @@ class Application:
         self.image_hub.send_reply(b"STOP")
         self.root.destroy()
         self.image_hub.close()
-        cv2.destroyAllWindows()  # it is not mandatory in this application
+        #cv2.destroyAllWindows()  # it is not mandatory in this application
 
     def thread_func(self, thread_name):
         print("Thread %s: starting", thread_name)
@@ -89,10 +95,15 @@ class Application:
         print("Thread %s: finishing", thread_name)
 
     def blackhole(self):
-        pass
+        print('smth is pressed.')
+        self.text.set('pressed.')
 
 
-app = Application(debug=debug)
+if do_detect: 
+    import detector as dkv
+else: pass
+
+app = Application(debug=debug, do_detect=do_detect)
 app.root.mainloop()
 
 

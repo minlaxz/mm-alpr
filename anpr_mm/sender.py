@@ -17,7 +17,7 @@ class Master:
         logging.basicConfig(format=format, level=logging.INFO,
                             datefmt="%H:%M:%S")
         self.debug = debug
-        self.is_x64 = False if 'arm' in os.uname()[-1] else True
+        self.is_x64 = False if 'arm' in os.name[-1] else True
 
         if self.debug: logging.info('`Master Constructor` : X64 device.') if self.is_x64 else logging.info('Master Constructor : X64 device.')
         self.userAbord = False
@@ -73,11 +73,11 @@ class Master:
         time.sleep(2.0)
         logging.info('`camera_instruct method` : `{}` Camera is start.'.format(name()))
 
-debug = False
+debug = True
 w, h = 512, 416
 app = Master(debug=debug)
 if debug: logging.info('`Main Thread` : Image Sender is initialized.')
 app.camera_instruct()
-app.connect_server('192.168.0.16')
+app.connect_server('localhost')
 app.send_frame()
 
