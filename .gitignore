@@ -4,4 +4,4 @@ Recognition/dataset
 rtsp.pid
 __pycache__
 test_code
-
+sender-ignore.py
