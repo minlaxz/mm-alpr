@@ -5,3 +5,4 @@ rtsp.pid
 __pycache__
 test_code
 sender-ignore.py
+libdarknet_nogpu_cudnn.so

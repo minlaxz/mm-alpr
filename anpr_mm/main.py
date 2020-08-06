@@ -1,12 +1,9 @@
-import os, imagezmq, traceback, sys, time
+import imagezmq, time
 from PIL import Image, ImageTk
 import tkinter as tk
-import threading 
-"""to handle multi thread processes."""
-#import detector as dkv
+from threading import Thread, Event
 
-debug =  True
-do_detect = False
+"""to handle multi thread processes."""
 
 
 # class Plate:
@@ -18,28 +15,32 @@ do_detect = False
 #         cv2.imshow('client_name', self.image)
 
 class Application:
-    def __init__(self, debug=False, do_detect=do_detect):
+    def __init__(self, debug=False, test=False):
 
         self.debug = debug
-        self.do_detect = do_detect
-        #self.dkv = dkv
+        self.test = test
+
         """dakrnet is initialized here"""
-        if self.do_detect:
+        if not self.test:
+            import detector as dkv
             self.dkv = dkv
             self.dkv.initialize_darknet()
 
         self.image_hub = imagezmq.ImageHub()
 
-        self.current_image = None
+        self.array_image = None
 
         self.root = tk.Tk()
-        self.root.title("MM ANPR")
+        self.root.title("MM ANPR TESTING") if self.test else self.root.title('MM ANPR DETECTION')
         self.root.protocol('WM_DELETE_WINDOW', self.destructor)
 
         self.panel = tk.Label(self.root)
         self.panel.pack(padx=10, pady=10)
 
-        btn = tk.Button(self.root, text="smth Command!", command=self.blackhole)
+        btn = tk.Button(self.root, text="Manual Door Command!", command=self.blackhole)
+        btn.pack(fill="both", expand=True, padx=10, pady=10)
+
+        btn = tk.Button(self.root, text="Exit!", command=self.destructor)
         btn.pack(fill="both", expand=True, padx=10, pady=10)
 
         self.text = tk.StringVar()
@@ -48,13 +49,18 @@ class Application:
         self.master_loop()
 
     def master_loop(self):
-        # 
-        self.text.set('not pressed.')
-        client_name, resized_rgb = self.image_hub.recv_image()
+        _, self.array_image = self.image_hub.recv_image()
+
         """ We need to process received image here """
-        if self.do_detect:
-            detections  = self.dkv.YOLO(resized_rgb)
-            self.text.set("Detected.") if detections else self.text.set("Nothing.")
+        if not self.test:
+            self.detections  = self.dkv.YOLO(self.array_image)
+            if self.detections:
+                self.text.set('DETECTED by ANPR SYSTEM.')
+                # print(self.detections)
+                self.drawDetected()
+            else:
+                self.text.set("NOTHING.")
+        else: self.text.set("NOTHING.")
 
         #if detections:
         #    self.text.set("Detected")
@@ -68,15 +74,17 @@ class Application:
         #else:
         #    self.text.set('Nothing')
 
-        self.current_image = Image.fromarray(resized_rgb)
-        self.client_name = client_name
-        imgtk = ImageTk.PhotoImage(image=self.current_image) 
+        imgtk = ImageTk.PhotoImage(image=Image.fromarray(self.array_image)) 
 
         self.panel.imgtk = imgtk  # anchor imgtk so it does not be deleted by garbage-collector
         self.panel.config(image=imgtk)  # show the image
 
         self.image_hub.send_reply(b"OK")
         self.root.after(30, self.master_loop)  # call the same function after 30 milliseconds
+
+    def drawDetected(self):
+        left, top, right, bottom =  bbox2points(self.detections[0][2])
+        self.array_image = detector.cv2.rectangle(self.array_image, (left, top), (right, bottom), (255,0,0), 3)
 
     def destructor(self):
         """ Destroy the root object and release all resources """
@@ -95,51 +103,18 @@ class Application:
         print("Thread %s: finishing", thread_name)
 
     def blackhole(self):
-        print('smth is pressed.')
-        self.text.set('pressed.')
+        pass
 
+def blackhole():
+    pass
 
-if do_detect: 
-    import detector as dkv
-else: pass
+def bbox2points(bbox):
+    x, y, w, h = bbox
+    xmin = int(round(x - (w / 2)))
+    xmax = int(round(x + (w / 2)))
+    ymin = int(round(y - (h / 2)))
+    ymax = int(round(y + (h / 2)))
+    return xmin, ymin, xmax, ymax
 
-app = Application(debug=debug, do_detect=do_detect)
+app = Application(debug=True, test=False) # """test=False make detections"""
 app.root.mainloop()
-
-
-
-# try:
-#     while True:
-#         client_name, resized_rgb = image_hub.recv_image()        
-
-#         """YOLO method needs rgb frame"""
-#         detections = dkv.YOLO(resized_rgb=resized_rgb)
-
-#         if detections:
-#             detected = dkv.cropDetected(detections=detections, img=resized_rgb)
-#             plate = Plate(detected)
-#             plate.perspective()
-#             #cv2.imshow(client_name, detected)
-#         else:
-#             pass
-#             # print(False)
-#             cv2.imshow(client_name, resized_rgb)
-#         cv2.waitKey(1)
-
-#         image_hub.send_reply(b"OK")
-
-# except (KeyboardInterrupt, SystemExit):
-#     _, resized_rgb = image_hub.recv_image()
-#     image_hub.send_reply(b'STOP')
-#     #pass  # Ctrl-C was pressed to end program;
-
-# except Exception as ex:
-#     print('Python error with no Exception handler:')
-#     print('Traceback error:', ex)
-#     traceback.print_exc()
-
-# finally:
-#     print('finally')
-#     cv2.destroyAllWindows()
-#     image_hub.close()
-#     sys.exit()

@@ -190,18 +190,6 @@ def detect_image(net, meta, im, thresh=.5, hier_thresh=.5, nms=.45, debug= False
     if debug: print("freed detections")
     return res
 
-def convertBack(x, y, w, h):
-    xmin = int(round(x - (w / 2)))
-    xmax = int(round(x + (w / 2)))
-    ymin = int(round(y - (h / 2)))
-    ymax = int(round(y + (h / 2)))
-    return xmin, ymin, xmax, ymax
-
-def cropDetected(detections, img):
-    for d in detections:
-        xmin, ymin, xmax, ymax = convertBack(float(d[2][0]), float(d[2][1]), float(d[2][2]), float(d[2][3]))
-        return img[ymin:ymax, xmin:xmax] # if detections else None
-
 count = 0
 def YOLO(resized_rgb):
     """ needs resized rgb frame """
