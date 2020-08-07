@@ -1,8 +1,12 @@
-Recognition/dataset
+dataset
 .ipynb_checkpoints
 *.jpg
+*.png
 rtsp.pid
 __pycache__
 test_code
 sender-ignore.py
 libdarknet_nogpu_cudnn.so
+dataset.zip
+rtsp-simple-server
+yolov3-tiny_obj_best.weights
