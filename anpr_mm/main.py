@@ -2,6 +2,7 @@ import imagezmq, time
 from PIL import Image, ImageTk
 import tkinter as tk
 from threading import Thread, Event
+import cv2
 
 """to handle multi thread processes."""
 
@@ -15,18 +16,14 @@ from threading import Thread, Event
 #         cv2.imshow('client_name', self.image)
 
 class Application:
-    def __init__(self, debug=False, test=False):
+    def __init__(self, debug=False, test=False, localrun=False):
 
         self.debug = debug
         self.test = test
+        self.localrun = localrun
 
-        """dakrnet is initialized here"""
-        if not self.test:
-            import detector as dkv
-            self.dkv = dkv
-            self.dkv.initialize_darknet()
-
-        self.image_hub = imagezmq.ImageHub()
+        if not self.test: self.init_detection()
+        self.run_local() if self.localrun else self.run_hub()
 
         self.array_image = None
 
@@ -47,10 +44,31 @@ class Application:
         self.label = tk.Label(self.root, textvariable=self.text)
         self.label.pack(padx=10, pady=10)
         self.master_loop()
+    
+    def init_detection(self):
+        """dakrnet is initialized here"""
+        import detector
+        self.dkv = detector
+        self.dkv.initialize_darknet()
 
-    def master_loop(self):
+    def run_local(self):
+        self.image_hub = cv2.VideoCapture(0)
+        self.image_hub.set(3,h)
+        self.image_hub.set(4,w)
+        time.sleep(3.0)
+
+    def run_hub(self):
+        self.image_hub = imagezmq.ImageHub()
+
+    def get_image_Fhub(self):
         _, self.array_image = self.image_hub.recv_image()
 
+    def get_image_Flocal(self):
+        _, image = self.image_hub.read()
+        self.array_image = cv2.resize(cv2.cvtColor(image,cv2.COLOR_BGR2RGB),(w,h), interpolation=cv2.INTER_LINEAR)
+
+    def master_loop(self):
+        self.get_image_Flocal() if self.localrun else self.get_image_Fhub()
         """ We need to process received image here """
         if not self.test:
             self.detections  = self.dkv.YOLO(self.array_image)
@@ -79,20 +97,24 @@ class Application:
         self.panel.imgtk = imgtk  # anchor imgtk so it does not be deleted by garbage-collector
         self.panel.config(image=imgtk)  # show the image
 
-        self.image_hub.send_reply(b"OK")
+        if not self.localrun: self.image_hub.send_reply(b"OK")
         self.root.after(30, self.master_loop)  # call the same function after 30 milliseconds
 
     def drawDetected(self):
         left, top, right, bottom =  bbox2points(self.detections[0][2])
-        self.array_image = detector.cv2.rectangle(self.array_image, (left, top), (right, bottom), (255,0,0), 3)
+        self.array_image = cv2.rectangle(self.array_image, (left, top), (right, bottom), (255,0,0), 3)
 
     def destructor(self):
         """ Destroy the root object and release all resources """
         print("[INFO] closing...")
-        _, image = self.image_hub.recv_image()
-        self.image_hub.send_reply(b"STOP")
+        if self.localrun:
+            self.image_hub.release()
+        else:
+            _, image = self.image_hub.recv_image()
+            self.image_hub.send_reply(b"STOP")
+            self.image_hub.close()
+
         self.root.destroy()
-        self.image_hub.close()
         #cv2.destroyAllWindows()  # it is not mandatory in this application
 
     def thread_func(self, thread_name):
@@ -115,6 +137,7 @@ def bbox2points(bbox):
     ymin = int(round(y - (h / 2)))
     ymax = int(round(y + (h / 2)))
     return xmin, ymin, xmax, ymax
-
-app = Application(debug=True, test=False) # """test=False make detections"""
+h = 416
+w = 512
+app = Application(debug=True, test=False, localrun=True) # """test=False make detections"""
 app.root.mainloop()
