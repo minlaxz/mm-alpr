@@ -22,5 +22,5 @@ if __name__ == '__main__':
     for t in threading.enumerate():
         if t is main_thread:
             continue
-        #logging.debug('joining %s', t.getName())
+        logging.debug('joining %s', t.getName())
         #t.join()
