@@ -4,6 +4,8 @@ import tkinter as tk
 from threading import Thread, Event
 import cv2
 import logging
+from configparser import SafeConfigParser
+
 """to handle multi thread processes."""
 
 
@@ -16,16 +18,16 @@ import logging
 #         cv2.imshow('client_name', self.image)
 
 class Application:
-    def __init__(self, debug=False, test=False, localrun=False):
+    def __init__(self, cfg_parser, cfg):
+        self.cfg_path = cfg
+        self.parser = cfg_parser
+        self.read_config()
 
-        self.debug = debug
         if self.debug: self.config_debugger()
 
-        self.test = test
         if self.debug: logging.debug('detection object will be initialized.') if not self.test else logging.debug('not initialized detection object.')
         if not self.test: self.init_detection()
 
-        self.localrun = localrun
         self.run_local() if self.localrun else self.run_hub()
 
         self.array_image = None
@@ -56,6 +58,12 @@ class Application:
 
         if self.debug: logging.debug('Waiting...')
         self.master_loop()
+    
+    def read_config(self):
+        self.parser.read(self.cfg_path)
+        self.debug = bool(self.parser.get('gui', 'debug')) """used bool() to be safe."""
+        self.test = bool(self.parser.get('gui', 'test'))
+        self.localrun = bool(self.parser.get('gui', 'localrun'))
     
     def config_debugger(self):
         format = "%(asctime)s: %(message)s"
@@ -177,5 +185,7 @@ def bbox2points(bbox):
 if __name__ == "__main__":
     h = 416
     w = 512
-    app = Application(debug=True, test=False, localrun=False) # """test=False make detections"""
+    cfg_parser = SafeConfigParser()
+    cfg = './mm_anpr.cfg'
+    app = Application(cfg_parser, cfg) # """test=False make detections"""
     app.root.mainloop()
