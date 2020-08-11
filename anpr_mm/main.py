@@ -173,7 +173,9 @@ def bbox2points(bbox):
     ymin = int(round(y - (h / 2)))
     ymax = int(round(y + (h / 2)))
     return xmin, ymin, xmax, ymax
-h = 416
-w = 512
-app = Application(debug=True, test=False, localrun=False) # """test=False make detections"""
-app.root.mainloop()
+
+if __name__ == "__main__":
+    h = 416
+    w = 512
+    app = Application(debug=True, test=False, localrun=False) # """test=False make detections"""
+    app.root.mainloop()
