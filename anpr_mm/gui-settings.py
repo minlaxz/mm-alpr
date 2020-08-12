@@ -5,13 +5,15 @@ from os import path
 class ActivityStart:
     def __init__(self):
         self.root = tk.Tk()
+        self.root.geometry('300x200') 
+
         self.parser = SafeConfigParser()
         self.configpath = './mm_anpr.cfg'
 
         self.debug = tk.BooleanVar()
         self.test = tk.BooleanVar()
         self.localrun = tk.BooleanVar()
-        self.settings_read() ###IMPORTANT###
+        self.read_settings() ###IMPORTANT###
         self.root.title("MM ANPR SETTINGS")
         self.root.protocol('WM_DELETE_WINDOW', self.destructor)
         frame = tk.Frame(self.root)
@@ -22,13 +24,13 @@ class ActivityStart:
         chkTwo.pack()
         chkThree = tk.Checkbutton(frame, text='Self camera' , variable=self.localrun, onvalue=True, offvalue=False, height=2, width = 10)
         chkThree.pack()
-        btn1 = tk.Button(frame, text = 'SET & Exit', width = 25,height=2, command = self.settings_apply)
+        btn1 = tk.Button(frame, text = 'SET & Exit', width = 25,height=2, command = self.apply_settings)
         btn1.pack()
         btn2 = tk.Button(frame, text='Quit', width=25, height=2, command=self.destructor)
         btn2.pack()
 
 
-    def settings_read(self):
+    def read_settings(self):
         try:
             if path.exists(self.configpath):
                 self.parser.read(self.configpath)
@@ -43,7 +45,7 @@ class ActivityStart:
             print(e,'\nMaybe wrong configuration in {}'.format(self.configpath))
             exit()
 
-    def settings_apply(self):
+    def apply_settings(self):
         self.parser.set('gui', 'debug', str(self.debug.get()))
         self.parser.set('gui', 'test', str(self.test.get()))
         self.parser.set('gui', 'localrun', str(self.localrun.get()))
