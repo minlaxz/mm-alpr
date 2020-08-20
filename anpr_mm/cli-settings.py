@@ -7,7 +7,7 @@ class StartParser:
     def __init__(self, parser):
         self.config_logger()
         self.parser = parser
-        self.config_path = './mm_anpr.cfg'
+        self.config_path = './anpr_mm.cfg'
 
         try:
             if (path.exists(self.config_path)):

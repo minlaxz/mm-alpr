@@ -3,77 +3,87 @@ import time
 import cv2
 import logging
 from threading import Thread, enumerate
+from configparser import SafeConfigParser
+from os import path
 
 class Application:
-    def __init__(self, debug=False, test=False, localrun=False):
-        self.debug = debug
-        if self.debug: self.config_debugger()
+    def __init__(self, cfgParser, cfg):
+        self.cfgPath = cfg
+        self.parser = cfgParser
+        self.readConfig()
 
-        self.localrun = localrun
-        self.run_local() if self.localrun else self.run_hub()
-
-        self.test = test
-        if self.debug: logging.debug('detection object will be initialized.') if not self.test else logging.debug('not initialized detection object.')
-        if not self.test: self.init_detection()
+        if self.debug: self.configDebugger()
+        self.runInLocal() if self.localrun else self.runHub()
+        if self.test:
+            if self.debug: logging.debug('Detection object will be BYPASS.')
+        else :
+            if self.debug: logging.debug('Detection object will be INITIALIZED.')
+            self.initDetector()
 
         self.array_image = None
-        if self.debug: logging.debug('Everying up')
+        if self.debug: logging.debug("Everything's up")
 
-        if self.debug: logging.debug('Waiting...')
-        self.master_loop()
+        self.mainLoop()
 
-    def config_debugger(self):
+    def readConfig(self):
+        self.parser.read(self.cfg_path)
+        self.debug = True if (self.parser.get('cli','debug') in ['True']) else False
+        self.test = True if (self.parser.get('cli','test') in ['True']) else False
+        self.localrun = True if (self.parser.get('cli','localrun') in ['True']) else False
+    
+
+    def configDebugger(self):
         format = "%(asctime)s: %(message)s"
         logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
         logging.debug('Ready.')
     
-    def init_detection(self):
+    def initDetector(self):
         """dakrnet is initialized here"""
-        import detector
-        self.dkv = detector
+        import detector as d
+        self.dkv = d
         self.dkv.initialize_darknet()
-        if self.debug: logging.debug('detection object is initialized.')
+        if self.debug: logging.debug('Detection object is initialized.')
 
-    def run_local(self):
-        if self.debug: logging.debug('setting camera...')
-        self.image_hub = cv2.VideoCapture(0)
-        self.image_hub.set(3,h)
-        self.image_hub.set(4,w)
-        if self.debug: logging.debug('Camera is warming up.')
+    def runInLocal(self):
+        if self.debug: logging.debug('Setting camera...')
+        self.capHub = cv2.VideoCapture(0)
+        self.capHub.set(3,h)
+        self.capHub.set(4,w)
+        if self.debug: logging.debug('Camera is warming up, sleep 3.0 ...')
         time.sleep(3.0)
-        if self.debug: logging.debug('Started camera.')
+        logging.debug('Camera is started.')
 
-    def run_hub(self):
-        if self.debug: logging.debug('setting imagehub...')
-        self.image_hub = imagezmq.ImageHub()
+    def runHub(self):
+        if self.debug: logging.debug('Setting imagehub...')
+        self.capHub = imagezmq.ImageHub()
         if self.debug: logging.debug('Started imagehub server.')
 
-    def get_image_Fhub(self):
+    def getImageFromHub(self):
         if self.debug: logging.debug('Getting image from imagezmq client.')
-        _, self.array_image = self.image_hub.recv_image()
+        _, self.array_image = self.capHub.recv_image()
 
-    def get_image_Flocal(self):
+    def getImageFromCamera(self):
         if self.debug: logging.debug('Getting image from camera.')
-        _, image = self.image_hub.read()
+        _, image = self.capHub.read()
         self.array_image = cv2.resize(cv2.cvtColor(image,cv2.COLOR_BGR2RGB),(w,h), interpolation=cv2.INTER_LINEAR)
 
-    def master_loop(self):
+    def mainLoop(self):
         while True:
             try:
-                self.get_image_Flocal() if self.localrun else self.get_image_Fhub()
+                self.getImageFromCamera() if self.localrun else self.getImageFromHub()
                 if not self.test:
-                    if self.debug: logging.debug('image frame detect.')
+                    if self.debug: logging.debug('detecting.')
                     self.detections = self.dkv.YOLO(self.array_image)
                     if self.detections:
                         logging.debug('Detected.')
                     else:
                         logging.debug('Nothing.')
                 else:
-                    if self.debug: logging.debug('image frame test.')
+                    if self.debug: logging.debug('bypassing.')
 
                 if not self.localrun:
-                    if self.debug: logging.debug('Reply OK')
-                    self.image_hub.send_reply(b"OK")
+                    self.capHub.send_reply(b"OK")
+                    if self.debug: logging.debug('Replied OK')
 
                 self.array_image = None
 
@@ -86,18 +96,24 @@ class Application:
                 logging.debug(e)
             
     def destructor(self):
-        if self.debug: logging.debug("[INFO] closing...")
+        if self.debug: logging.debug("[INFO] Closing...")
         if self.localrun:
-            self.image_hub.release()
+            self.capHub.release()
             if self.debug: logging.debug('Camera is realased.')
         else:
-            _, image = self.image_hub.recv_image()
-            self.image_hub.send_reply(b"STOP")
-            if self.debug: logging.debug('repiled STOP.')
-            self.image_hub.close()
+            _, image = self.capHub.recv_image()
+            self.capHub.send_reply(b"STOP")
+            if self.debug: logging.debug('Repiled STOP.')
+            self.capHub.close()
             if self.debug: logging.debug('Closed connection.')
-                    
-h = 416
-w = 512
-app = Application(debug=True, test=False, localrun=True) # """test=False make detections"""
 
+if __name__ == "__main__":
+    h=416
+    w=512
+    cfgParser = SafeConfigParser()
+    cfg='./anpr_mm.cfg'
+    if path.exists(cfg):
+        app = Application(cfgParser, cfg)
+    else:
+        print("CONFIG file not found.")
+        exit()

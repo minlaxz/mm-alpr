@@ -8,7 +8,7 @@ class ActivityStart:
         self.root.geometry('300x200') 
 
         self.parser = SafeConfigParser()
-        self.configpath = './mm_anpr.cfg'
+        self.configpath = './anpr_mm.cfg'
 
         self.debug = tk.BooleanVar()
         self.test = tk.BooleanVar()

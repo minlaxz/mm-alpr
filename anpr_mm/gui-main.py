@@ -7,8 +7,6 @@ import logging
 from configparser import SafeConfigParser
 
 """to handle multi thread processes."""
-
-
 # class Plate:
 #     def __init__(self,image_rgb):
 #         self.image = image_rgb
@@ -18,17 +16,18 @@ from configparser import SafeConfigParser
 #         cv2.imshow('client_name', self.image)
 
 class Application:
-    def __init__(self, cfg_parser, cfg):
+    def __init__(self, cfgParser, cfg):
         self.cfg_path = cfg
-        self.parser = cfg_parser
-        self.read_config()
+        self.parser = cfgParser
+        self.readConfigFile()
 
-        if self.debug: self.config_debugger()
-
-        if self.debug: logging.debug('detection object will be initialized.') if not self.test else logging.debug('not initialized detection object.')
-        if not self.test: self.init_detection()
-
-        self.run_local() if self.localrun else self.run_hub()
+        if self.debug: self.configDebugger()
+        self.runInLocal() if self.localrun else self.runHub()
+        if self.test:
+            if self.debug: logging.debug('Detection object will be BYPASS.')
+        else :
+            if self.debug: logging.debug('Detection object will be INITIALIZED.')
+            self.initDetector()
 
         self.array_image = None
 
@@ -54,30 +53,28 @@ class Application:
         self.label.pack(padx=10, pady=10)
         if self.debug: logging.debug('label is packed.')
 
-        if self.debug: logging.debug('Everying up')
-
-        if self.debug: logging.debug('Waiting...')
-        self.master_loop()
+        if self.debug: logging.debug("Everything's up")
+        self.mainLoop()
     
-    def read_config(self):
+    def readConfigFile(self):
         self.parser.read(self.cfg_path)
-        self.debug = bool(self.parser.get('gui', 'debug')) """used bool() to be safe."""
-        self.test = bool(self.parser.get('gui', 'test'))
-        self.localrun = bool(self.parser.get('gui', 'localrun'))
+        self.debug = True if (self.parser.get('gui','debug') in ['True']) else False
+        self.test = True if (self.parser.get('gui','test') in ['True']) else False
+        self.localrun = True if (self.parser.get('gui','localrun') in ['True']) else False
     
-    def config_debugger(self):
+    def configDebugger(self):
         format = "%(asctime)s: %(message)s"
         logging.basicConfig(format=format, level=logging.DEBUG, datefmt="%H:%M:%S")
         logging.debug('Ready.')
     
-    def init_detection(self):
+    def initDetector(self):
         """dakrnet is initialized here"""
-        import detector
-        self.dkv = detector
+        import detector as d
+        self.dkv = d
         self.dkv.initialize_darknet()
         if self.debug: logging.debug('detection object is initialized.')
 
-    def run_local(self):
+    def runInLocal(self):
         if self.debug: logging.debug('setting camera...')
         self.image_hub = cv2.VideoCapture(0)
         self.image_hub.set(3,h)
@@ -86,22 +83,22 @@ class Application:
         time.sleep(3.0)
         if self.debug: logging.debug('Started camera.')
 
-    def run_hub(self):
+    def runHub(self):
         if self.debug: logging.debug('setting imagehub...')
         self.image_hub = imagezmq.ImageHub()
         if self.debug: logging.debug('Started imagehub server.')
 
-    def get_image_Fhub(self):
+    def getImageFromHub(self):
         if self.debug: logging.debug('Getting image from imagezmq client.')
         _, self.array_image = self.image_hub.recv_image()
 
-    def get_image_Flocal(self):
+    def getImageFromCamera(self):
         if self.debug: logging.debug('Getting image from camera.')
         _, image = self.image_hub.read()
         self.array_image = cv2.resize(cv2.cvtColor(image,cv2.COLOR_BGR2RGB),(w,h), interpolation=cv2.INTER_LINEAR)
 
-    def master_loop(self):
-        self.get_image_Flocal() if self.localrun else self.get_image_Fhub()
+    def mainLoop(self):
+        self.getImageFromCamera() if self.localrun else self.getImageFromHub()
         """ We need to process received image here """
         if not self.test:
             self.detections  = self.dkv.YOLO(self.array_image)
@@ -137,7 +134,7 @@ class Application:
         if not self.localrun: 
             if self.debug: logging.debug('Reply OK')
             self.image_hub.send_reply(b"OK")
-        self.root.after(30, self.master_loop)  # call the same function after 30 milliseconds
+        self.root.after(30, self.mainLoop)  # call the same function after 30 milliseconds
 
     def drawDetected(self):
         left, top, right, bottom =  bbox2points(self.detections[0][2])
@@ -185,7 +182,7 @@ def bbox2points(bbox):
 if __name__ == "__main__":
     h = 416
     w = 512
-    cfg_parser = SafeConfigParser()
-    cfg = './mm_anpr.cfg'
-    app = Application(cfg_parser, cfg) # """test=False make detections"""
+    cfgParser = SafeConfigParser()
+    cfg = './anpr_mm.cfg'
+    app = Application(cfgParser, cfg) # """test=False make detections"""
     app.root.mainloop()
