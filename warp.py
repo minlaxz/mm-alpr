@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import imutils
 
     def main():
-        image = how to set image path :3
+        # image = how to set image path :3
         image = cv2.imread(image)
         ratio = image.shape[0] / 300.0
         image = imutils.resize(image, height = 300)
