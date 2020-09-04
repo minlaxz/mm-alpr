@@ -1,4 +1,6 @@
 {
     "python.linting.enabled": true,
-    "python.linting.pylintEnabled": true
+    "python.linting.pylintEnabled": true,
+    "python.pythonPath": "/home/laxz/miniconda3/envs/ml/bin/python",
+    "python.linting.pylintArgs": ["--generate-members"]
 }
