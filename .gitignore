@@ -12,4 +12,4 @@ yolov3-tiny_obj_best.weights
 mm_anpr.cfg
 libdarknet.so.gpu
 libdarknet.so.cpu
-.pyc
+*.pyc
