@@ -13,3 +13,4 @@ mm_anpr.cfg
 libdarknet.so.gpu
 libdarknet.so.cpu
 *.pyc
+libdarknet.so
