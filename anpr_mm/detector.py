@@ -1,4 +1,4 @@
-#!$HOME/miniconda3/envs/tfk/bin/python
+#!$HOME/miniconda3/envs/ml/bin/python
 """
 @author: Philip Kahn
 @date: 20180503
@@ -9,9 +9,9 @@
 ## Adapted with ImageZMQ
 This file needs resized RGB frame and return detected image if detection else None
 """
-import os
-import cv2
 from ctypes import *
+import os
+
 hasGPU=True
 
 class BOX(Structure):
@@ -28,7 +28,11 @@ class DETECTION(Structure):
                 ("objectness", c_float),
                 ("sort_class", c_int),
                 ("uc", POINTER(c_float)),
-                ("points", c_int)]
+                ("points", c_int),
+                ("embeddings", POINTER(c_float)),
+                ("embedding_size", c_int),
+                ("sim", c_float),
+                ("track_id", c_int)]
 
 class DETNUMPAIR(Structure):
     _fields_ = [("num", c_int),
@@ -59,6 +63,7 @@ copy_image_from_bytes.argtypes = [IMAGE,c_char_p]
 #width & height
 def network_width(net):
     return lib.network_width(net)
+
 def network_height(net):
     return lib.network_height(net)
 
@@ -92,6 +97,12 @@ get_network_boxes.restype = POINTER(DETECTION)
 #free detections
 free_detections = lib.free_detections
 free_detections.argtypes = [POINTER(DETECTION), c_int]
+
+free_image = lib.free_image
+free_image.argtypes = [IMAGE]
+
+free_ptrs = lib.free_ptrs
+free_ptrs.argtypes = [POINTER(c_void_p), c_int]
 
 #goddamn_predictor
 predict_image = lib.network_predict_image
