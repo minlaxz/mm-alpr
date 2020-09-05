@@ -14,3 +14,4 @@ libdarknet.so.gpu
 libdarknet.so.cpu
 *.pyc
 libdarknet.so
+anpr_mm/.vscode
