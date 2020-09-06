@@ -123,12 +123,12 @@ class LoadNetwork(NetworkParameters):
         """
         Returns a list with highest confidence class and their bbox
         """
-        self.dk_image = make_image(self.network_w, self.network_h, 3)
-        copy_image_from_bytes(self.dk_image,resized_rgb.tobytes())
+        dk_image = make_image(self.network_w, self.network_h, 3)
+        copy_image_from_bytes(dk_image,resized_rgb.tobytes())
 
         pnum = pointer(c_int(0))
-        predict_image(self.network, self.dk_image)
-        detections = get_network_boxes(self.network, self.dk_image.w, self.dk_image.h,
+        predict_image(self.network, dk_image)
+        detections = get_network_boxes(self.network, dk_image.w, dk_image.h,
                         self.thresh, self.hier_thresh, None, 0, pnum, 0)
         num = pnum[0]
         if self.nms:
@@ -136,7 +136,7 @@ class LoadNetwork(NetworkParameters):
         predictions = remove_negatives( detections, self.class_names, num)
         predictions = decode_detection(predictions)
         free_detections(detections, num)
-        free_image(self.dk_image)
+        free_image(dk_image)
         return sorted(predictions, key=lambda x: x[1])
 
 count = 0
