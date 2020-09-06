@@ -1,9 +1,11 @@
-import imagezmq, time
-from PIL import Image, ImageTk
-import tkinter as tk
-from threading import Thread, Event
+import imagezmq
+import time
 import cv2
-import log, settings
+import tkinter as tk
+from PIL import Image, ImageTk
+from threading import Thread, Event
+import log
+from settings import Settings
 
 """to handle multi thread processes."""
 # class Plate:
@@ -16,24 +18,20 @@ import log, settings
 
 class Application:
     def __init__(self):
-        configs = settings.Activity()
+        configs = Settings()
         configs.read()
         self.debug = configs.debug
         self.localrun = configs.localrun
         self.test = configs.test
         self.gui = configs.gui #TODO
 
-        self.runInLocal() if self.localrun else self.runHub()
-        if self.test:
-            if self.debug: log.this('Detection object will be BYPASS.')
-        else :
-            if self.debug: log.this('Detection object will be INITIALIZED.')
-            self.initDetector()
+        self.onOwnCamera() if self.localrun else self.onHub()
+        log.this("Detector will not be initialized.") if self.test else self.initDetector()
 
         self.array_image = None
 
         self.root = tk.Tk()
-        self.root.title("MM ANPR TESTING") if self.test else self.root.title('MM ANPR DETECTION')
+        self.root.title("G-22.4 ANPR TESTING") if self.test else self.root.title('G-22.4 ANPR DETECTION')
         self.root.protocol('WM_DELETE_WINDOW', self.destructor)
         if self.debug: log.this('root is packed.')
 
@@ -58,22 +56,22 @@ class Application:
         self.mainLoop()
     
     def initDetector(self):
-        """dakrnet is initialized here"""
-        import detector as d
-        self.dkv = d
-        self.dkv.initialize_darknet()
-        if self.debug: log.this('detection object is initialized.')
+        """darknet is initialized here"""
+        import g22darknet as darknet
+        self.detector = darknet.LoadNetwork(config_file, data_file, weights, thresh, batch_size)
+        self.w , self.h = self.detector.network_w , self.detector.network_h
+        log.this('detection object is initialized.')
 
-    def runInLocal(self):
+    def onOwnCamera(self):
         if self.debug: log.this('setting camera...')
         self.image_hub = cv2.VideoCapture(0)
-        self.image_hub.set(3,h)
-        self.image_hub.set(4,w)
+        self.image_hub.set(3,640)
+        self.image_hub.set(4,480)
         if self.debug: log.this('Camera is warming up.')
         time.sleep(3.0)
         if self.debug: log.this('Started camera.')
 
-    def runHub(self):
+    def onHub(self):
         if self.debug: log.this('setting imagehub...')
         self.image_hub = imagezmq.ImageHub()
         if self.debug: log.this('Started imagehub server.')
@@ -85,24 +83,21 @@ class Application:
     def getImageFromCamera(self):
         if self.debug: log.this('Getting image from camera.')
         _, image = self.image_hub.read()
-        self.array_image = cv2.resize(cv2.cvtColor(image,cv2.COLOR_BGR2RGB),(w,h), interpolation=cv2.INTER_LINEAR)
+        self.array_image = cv2.resize(cv2.cvtColor(image,cv2.COLOR_BGR2RGB), (self.w,self.h), interpolation=cv2.INTER_LINEAR)
 
     def mainLoop(self):
         self.getImageFromCamera() if self.localrun else self.getImageFromHub()
         """ We need to process received image here """
         if not self.test:
-            self.detections  = self.dkv.YOLO(self.array_image)
+            # self.detections  = self.dkv.YOLO(self.array_image)
+            self.detections = self.detector.detect_image(self.array_image)
             if self.detections:
                 if self.debug: log.this('Got detections.')
                 self.text.set('DETECTED by ANPR SYSTEM.')
                 # print(self.detections)
                 self.drawDetected()
-            else:
-                if self.debug: log.this('Not detected.')
-                self.text.set("NOTHING.")
-        else: 
-            if self.debug: log.this('Running test mode.')
-            self.text.set("NOTHING.")
+            else: self.text.set("NOTHING.")
+        else: self.text.set("NOTHING.")
 
         #if detections:
         #    self.text.set("Detected")
@@ -145,7 +140,7 @@ class Application:
             if self.debug: log.this('Closed connection.')
 
         self.root.destroy()
-        if self.debug: log.this('Clean up.')
+        log.this('Clean up.')
         #cv2.destroyAllWindows()  # it is not mandatory in this application
 
     def thread_func(self, thread_name):
@@ -170,7 +165,10 @@ def bbox2points(bbox):
     return xmin, ymin, xmax, ymax
 
 if __name__ == "__main__":
-    h = 416
-    w = 512
+    thresh = 0.5
+    batch_size = 1
+    config_file = "./network/yolov3-tiny_obj.cfg"
+    data_file = "./network/obj.data"
+    weights = "./network/yolov3-tiny_obj_best.weights"
     app = Application() # """test=False make detections"""
     app.root.mainloop()

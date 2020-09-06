@@ -7,7 +7,7 @@ if (not os.path.exists(cfg)):
     log.this("settingparser: config file not found!")
     safe = False
 
-class Activity:
+class Settings:
     def __init__(self):
         self.parser = SafeConfigParser()
 
