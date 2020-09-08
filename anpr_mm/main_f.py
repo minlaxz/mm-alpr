@@ -1,7 +1,9 @@
-import detector as darknet
+import g22darknet as darknet
 import log
 import cv2
 import time
+from threading import Thread
+from queue import Queue
 
 thresh = 0.5
 batch_size = 1
@@ -9,33 +11,70 @@ config_file = "./network/yolov3-tiny_obj.cfg"
 data_file = "./network/obj.data"
 weights = "./network/yolov3-tiny_obj_best.weights"
 
-def main(cap):
-    detector = darknet.LoadNetwork(config_file, data_file, weights, thresh, batch_size)
-    w , h = detector.network_w , detector.network_h
-    cap.set(3, 1280) # h
-    cap.set(4, 480) # 480p
-    log.this("Waiting camera object...")
-    time.sleep(3)
-    while (True):
-        _, im = cap.read()
-        # fps = cap.get(cv2.CAP_PROP_FPS)
-        resized = cv2.resize(im, (w,h) , interpolation=cv2.INTER_LINEAR)
-        rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
-        detections = detector.detect_image(resized_rgb=rgb)
+def capture_video():
+    while cap.isOpened():
+        _ , im = cap.read()
+        frame_queue.put(im)
 
-        # log.this("detected.") if detections else log.this("none.")
-        log.this(str(cap.get(cv2.CAP_PROP_FPS)))
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            log.this("exit.")
-            cap.release()
+def detect_video():
+    while cap.isOpened():
+        if not frame_queue.empty() : 
+            prev_time = time.time()
+            im = frame_queue.get() 
+            resized = cv2.resize(im, (w,h) , interpolation=cv2.INTER_LINEAR)
+            rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+            print(int(1/(time.time() - prev_time)))
+            
+            log.this('Detected.') if detector.detect_image(rgb) else log.this('Not detected.')
+            cv2.imshow('w_name', resized)
+
+        key = cv2.waitKey(1) & 0xff
+
+        if key == ord('q'):
+            if cap.isOpened() : cap.release()
             cv2.destroyAllWindows()
             break
 
-
-
 if __name__ == "__main__":
+    frame_queue = Queue(maxsize=5)
+
     cap = cv2.VideoCapture(0)
-    main(cap=cap)
+    detector = darknet.LoadNetwork(config_file, data_file, weights, thresh, batch_size)
+    w , h = detector.network_w , detector.network_h
+    cap.set(3, 640) # h
+    cap.set(4, 480) # 480p
+    time.sleep(2)
+    Thread(target=capture_video, args=()).start()
+    Thread(target=detect_video, args=()).start()
+    log.this("Main Thread Done")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 """
