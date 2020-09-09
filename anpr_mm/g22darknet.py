@@ -119,11 +119,11 @@ class LoadNetwork(NetworkParameters):
 
         # return network, class_names, colors
 
-    def detect_image(self, resized_rgb):
+    def detect_image(self, dk_image, resized_rgb):
         """
         Returns a list with highest confidence class and their bbox
         """
-        dk_image = make_image(self.network_w, self.network_h, 3)
+        # dk_image = make_image(self.network_w, self.network_h, 3)
         copy_image_from_bytes(dk_image,resized_rgb.tobytes())
 
         pnum = pointer(c_int(0))
