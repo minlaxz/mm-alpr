@@ -15,6 +15,7 @@ class Application:
         self.no_detection = app_configs.test
         if not self.no_detection : self.init_detector()
         self.setup_camera() if self.use_own_camera else self.setup_hub()
+        self.run = None
 
     def setup_camera(self):
         self.cap = cv2.VideoCapture(0)
@@ -35,19 +36,23 @@ class Application:
         self.n_h = self.detector.network_h
 
 def detect():
-    while True:
+    while app.run:
         im = frame_queue.get()
         dk = dk_queue.get()
         detections = app.detector.detect_image(dk, im)
-        if detections: log.this('Detected.')
+        try:
+            if detections: log.this(detections) #TODO another thread or process
+        except KeyboardInterrupt:
+            app.run = False
+            if app.use_own_camera : app.cap.release()
 
 def get_dk_img():
-    while True:
+    while app.run:
         if dk_queue.empty():
             dk_queue.put(darknet.make_image(app.n_w, app.n_h,3))
 
 def get_img():
-    while True:
+    while app.run:
         if app.use_own_camera:
             _ , img = app.cap.read()
             img = cv2.resize(img, (app.n_w, app.n_h), interpolation=cv2.INTER_LINEAR)
@@ -67,10 +72,15 @@ if __name__ == "__main__":
     data_file = "./network/obj.data"
     weights = "./network/yolov3-tiny_obj_best.weights"
     app = Application()
+
+    app.run = True
+
     t_img = Thread(target=get_img, args=())
     t_dk = Thread(target=get_dk_img, args=())
     t_detect = Thread(target=detect, args=())
+
     t_img.start()
     t_dk.start()
     t_detect.start()
+
     log.this('Network is Loaded.\nMain thread done.')
