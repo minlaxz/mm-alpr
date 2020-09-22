@@ -1,11 +1,15 @@
 import cv2
 from settings import Settings
 import g22darknet as darknet
-from threading import Thread, enumerate
+from threading import Thread
 import time
 import log
 from queue import Queue
 
+"""
+Configs = {debug},{own_camera}
+
+"""
 class Application:
     def __init__(self):
         app_configs = Settings()
