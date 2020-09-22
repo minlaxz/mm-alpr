@@ -61,11 +61,15 @@ def get_img():
             _ , img = app.cap.read()
             img = cv2.resize(img, (app.n_w, app.n_h), interpolation=cv2.INTER_LINEAR)
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            frame_queue.put(img)
         else:
             img = app.cap.recv_image()
-            if frame_queue.empty(): app.reply()
-            
-        frame_queue.put(img)
+            if frame_queue.empty():
+                app.reply()
+            else:
+                frame_queue.put(img)
+        if not app.run: break
+        
 
 if __name__ == "__main__":
     frame_queue = Queue (maxsize=1)
