@@ -1,5 +1,5 @@
 from configparser import SafeConfigParser
-import log
+from . import log
 import os.path
 cfg = "./anpr_mm.cfg"
 safe = True
@@ -40,7 +40,7 @@ class Settings:
 
 if __name__ == "__main__":
     log.this("Runninng standalone.")
-    activity = Activity()
+    activity = Settings()
     activity.read()
     log.this("Debug: `{}`".format(activity.debug))
     log.this("Test: `{}` Detection or Not".format(activity.test))
