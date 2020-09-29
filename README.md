@@ -1,26 +1,47 @@
 Myanmar License Plate Recogition
 ===
 
-project base is at ./anpr_mm
+_Project base is ./anpr_mm && rest are tests._
 
-rest are tests.
 
-## Table of Contents for <b>LINUX</b>
+### Setups ###
+ - [For Linux](#workplace-setup-for-linux)
+ - [For Windows](#workplace-setup-for-windows)
+ - I don't have MAC -`)
 
-1. [How to compile Darknet v4](https://github.com/AlexeyAB/darknet/#how-to-compile-on-linuxmacos-using-cmake)
+---
 
-2. [How to install nvidia driver](#nvidia-driver-installation)
+## Workplace setup for LINUX
 
-3. [How to install CUDA](#cuda-installation)
+1. [Install CUDA](#cuda-installation)
 
-4. [How to build OPENCV with CUDA and install](#opencv-installation-with-cuda)
+2. [Install CUDNN](#cudnn-installation)
+
+3. [Install nvidia driver](#nvidia-driver-installation)
+
+4. [Build OPENCV with CUDA then Install](#opencv-installation-with-cuda)
+
+5. [Compile Darknet v4](https://github.com/AlexeyAB/darknet/#how-to-compile-on-linuxmacos-using-cmake)
+   
+
+## CUDA Installation
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-ubuntu2004.pin
+    sudo mv cuda-ubuntu2004.pin /etc/apt/preferences.d/cuda-repository-pin-600
+    sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/7fa2af80.pub
+    sudo add-apt-repository "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/ /"
+    sudo apt update
+    sudo apt install cuda
+
+
+## cuDNN installation 
+* Note - cuda v11.0 need cudnn v8.0.3.33
+    sudo mv cuda/include/cudnn*.h /usr/local/cuda/include/
+
+
 
 
 ## Nvidia Driver Installation
-    sample
 
-## CUDA Installation
-    sample
 
 ## OPENCV Installation with CUDA
 `git clone opencv`
