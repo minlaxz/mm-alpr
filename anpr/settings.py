@@ -3,6 +3,7 @@ import pylaxz
 import os
 
 cfg = "./settings/config.ini"
+section = "global"
 
 if not os.path.exists(cfg):
     pylaxz.printf("config file not found!", _int=True, _err=True)
@@ -12,39 +13,48 @@ class Settings:
     def __init__(self):
         self.parser = SafeConfigParser()
         self.parser.read(cfg)
-        self.debug = True if (self.parser.get("global", "debug") in ["True"]) else False
-        self.test = True if (self.parser.get("global", "test") in ["True"]) else False
-        self.localrun = (
-            True if (self.parser.get("global", "localrun") in ["True"]) else False
-        )
-        self.gui = True if (self.parser.get("mode", "gui") in ["True"]) else False
 
     @property
-    def configs(self):
-        return self
+    def appconfigs(self):
+        self._debug = True if (self.parser.get(section, "debug") in ["True"]) else False
+        self._nodetect = (
+            True if (self.parser.get(section, "test") in ["True"]) else False
+        )
+        self._hostcamera = (
+            True if (self.parser.get(section, "localrun") in ["True"]) else False
+        )
+        self._gui = True if (self.parser.get(section, "gui") in ["True"]) else False
+        return (self._debug, self._nodetect, self._hostcamera, self._gui)
 
-    @configs.setter
-    def configs(self, arg):
-        self.test = arg
+    @appconfigs.setter
+    def appconfigs(self, *arg):
+        self.parser.set(
+            section,
+            "debug",
+            str(not self._debug) if arg[0][0] == "y" else str(self._debug),
+        )
+        self.parser.set(
+            section,
+            "test",
+            str(not self._nodetect) if arg[0][1] == "y" else str(self._nodetect),
+        )
+        self.parser.set(
+            section,
+            "localrun",
+            str(not self._hostcamera) if arg[0][2] == "y" else str(self._hostcamera),
+        )
+        self.parser.set(
+            section, "gui", str(not self._gui) if arg[0][3] == "y" else str(self._gui)
+        )
 
-    @classmethod
-    def callclass(cls):
-        pass
-
-    def edit(self):
-        u = input("Debug : `{}` [c]hange : ".format(self.debug))
-        if "c" in u:
-            self.parser.set("global", "debug", str(not self.debug))
-        u = input("Test : `{}` [c]hange : ".format(self.test))
-        if "c" in u:
-            self.parser.set("global", "debug", str(not self.test))
-        u = input("Localrun : `{}` [c]hange : ".format(self.localrun))
-        if "c" in u:
-            self.parser.set("global", "debug", str(not self.localrun))
-        if "a" in input("[a]pply? : "):
-            self.apply()
-        else:
-            pylaxz.printf("cancled.", _int=True)
+    @staticmethod
+    def show(obj):
+        pylaxz.printf(
+            "Debug {0} \nNo Detect {1} \nUse Host Camera {2} \nGUI {3}".format(
+                obj[0], obj[1], obj[2], obj[3]
+            ),
+            _int=True,
+        )
 
     def apply(self):
         with open(cfg, "w") as f:
@@ -53,16 +63,22 @@ class Settings:
 
 
 if __name__ == "__main__":
-    s = Settings()
-    pylaxz.printf(s.configs.test, _int=True)
+    settings = Settings()
+    settings.show(settings.appconfigs)
 
-    s.configs = True
-    pylaxz.printf(s.configs.test, _int=True)
+    if input("Edit [y/N] : ") == "y":
+        pylaxz.printf("Example yyyy or yynn. (only small and be exactly 4)", _int=True)
+        choices = input("Debug, Nodetect, Hostcamera, GUI : ")
+        if not len(choices) == 4:
+            raise ValueError
+        else:
+            settings.appconfigs = [i for i in choices]
+    else:
+        pylaxz.printf("Cancled.", _int=True)
+        exit()
 
-
-
-    # pylaxz.printf("Debug: {}".format(activity.debug), _int=True)
-    # pylaxz.printf("Test: {} Detection or Not".format(activity.test), _int=True)
-    # pylaxz.printf(
-    #     "Localrun: {} Local Camera or TCP Camera".format(activity.localrun), _int=True
-    # )
+    settings.show(settings.appconfigs)
+    if input("[a]pply ? : ") == "a":
+        settings.apply()
+    else:
+        pass
