@@ -1,12 +1,12 @@
 from configparser import SafeConfigParser
-import pylaxz
-import os
+import pylaxz, os
 
-cfg = "./settings/config.ini"
+cfg = "./configs/config.ini"
 section = "global"
 
 if not os.path.exists(cfg):
     pylaxz.printf("config file not found!", _int=True, _err=True)
+    raise FileNotFoundError
 
 
 class Settings:
@@ -55,6 +55,10 @@ class Settings:
             ),
             _int=True,
         )
+    
+    @classmethod
+    def get_server(cls)->object:
+        return cls()
 
     def apply(self):
         with open(cfg, "w") as f:
