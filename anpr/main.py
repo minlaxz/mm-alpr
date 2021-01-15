@@ -1,94 +1,99 @@
 import cv2
-from settings import Settings
-import g22darknet as darknet
+from configs.settings import Settings
+import darknet
 from threading import Thread
-import time
-import log
+import time, pylaxz
 from queue import Queue
 
 """
 Configs = {debug},{own_camera}
 
 """
-class Application:
-    def __init__(self):
-        app_configs = Settings()
-        app_configs.read()
-        self.debug = app_configs.debug
-        self.use_own_camera = app_configs.localrun
-        self.no_detection = app_configs.test
-        if not self.no_detection : self.init_detector()
-        self.setup_camera() if self.use_own_camera else self.setup_hub()
-        self.run = None
 
-    def setup_camera(self):
+class Application:
+    def __init__(self) -> object:
+        self.load_camera() if hostcamera else self.load_hub()
+        if not nodetect: self.load_detector()
+
+    def load_camera(self):
         self.cap = cv2.VideoCapture(0)
         self.cap.set(3,640)
         self.cap.set(4,480)
         time.sleep(3.0)
 
-    def setup_hub(self):
+    def load_hub(self):
         import imagezmq
         self.cap =imagezmq.ImageHub()
-    
+
     def reply(self):
         self.cap.send_reply(b"OK")
 
-    def init_detector(self):
-        self.detector = darknet.LoadNetwork(config_file, data_file, weights, thresh, batch_size)
-        self.n_w = self.detector.network_w
-        self.n_h = self.detector.network_h
+    def get_image(self):
+        if hostcamera: 
+            _ , img = self.cap.read()
+            img = cv2.resize(img, (self.network_width, self.network_height), interpolation=cv2.INTER_LINEAR)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        else:
+            img = self.cap.recv_image()
+        return img
+
+    def load_detector(self):
+        self.detector = darknet.LoadNetwork(networks['cfg'], networks['data'],
+         networks['weight'], float(networks['thresh']), int(networks['batch_size']) )
+
+        self.network_width = self.detector.network_w
+        self.network_height = self.detector.network_h
 
 def detect():
+    if debug : pylaxz.printf('detect thread started.' ,_int=1)
     while app.run:
-        im = frame_queue.get()
-        dk = dk_queue.get()
-        detections = app.detector.detect_image(dk, im)
+        detections = app.detector.detect_image(q_dk_frame.get(), q_frame.get())
         try:
-            if detections: log.this(detections) #TODO another thread or process
+            if detections: pylaxz.printf(detections, _int=True) #TODO another thread or process
         except KeyboardInterrupt:
             app.run = False
-            if app.use_own_camera : app.cap.release()
+            if hostcamera : app.cap.release()
+            if debug : pylaxz.printf('detect thread stopped.' ,_int=1)
 
 def get_dk_img():
+    if debug : pylaxz.printf('get_dk_img thread started.' ,_int=1)
     while app.run:
-        if dk_queue.empty():
-            dk_queue.put(darknet.make_image(app.n_w, app.n_h,3))
+        if q_dk_frame.empty():
+            q_dk_frame.put(darknet.make_image(app.network_width, app.network_height,3))
+        if not app.run:
+            with q_dk_frame.mutex:
+                q_dk_frame.queue.clear()
+            if debug : pylaxz.printf('get_dk_img thread stopped.' ,_int=1)
+            break
 
 def get_img():
+    if debug : pylaxz.printf('get_img thread started.' ,_int=1)
     while app.run:
-        if app.use_own_camera:
-            _ , img = app.cap.read()
-            img = cv2.resize(img, (app.n_w, app.n_h), interpolation=cv2.INTER_LINEAR)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            frame_queue.put(img)
-        else:
-            img = app.cap.recv_image()
-            if frame_queue.empty():
-                app.reply()
-            else:
-                frame_queue.put(img)
-        if not app.run: break
-        
+        if q_frame.empty(): q_frame.put(app.get_image())
+        if not hostcamera : app.reply()
+        if not app.run:
+            with q_frame.mutex:
+                q_frame.clear()
+            if debug : pylaxz.printf('get_img thread stopped.' ,_int=1)
+            break
 
 if __name__ == "__main__":
-    frame_queue = Queue (maxsize=1)
-    dk_queue = Queue (maxsize=1)
-    thresh = 0.5
-    batch_size = 1
-    config_file = "./network/yolov3-tiny_obj.cfg"
-    data_file = "./network/obj.data"
-    weights = "./network/yolov3-tiny_obj_best.weights"
-    app = Application()
+    s = Settings()
+    networks = s.get_network
+    debug, nodetect, hostcamera, gui = s.appconfigs
 
+    app = Application()
     app.run = True
 
-    t_img = Thread(target=get_img, args=())
-    t_dk = Thread(target=get_dk_img, args=())
-    t_detect = Thread(target=detect, args=())
+    q_frame = Queue(maxsize=1)
+    q_dk_frame = Queue(maxsize=1)
 
-    t_img.start()
-    t_dk.start()
-    t_detect.start()
+    t_get_frame = Thread(target=get_img, args=())
+    t_get_dk_frame = Thread(target=get_dk_img, args=())
+    t_detect_plate = Thread(target=detect, args=())
 
-    log.this('Network is Loaded.\nMain thread done.')
+    t_get_frame.start()
+    t_get_dk_frame.start()
+    t_detect_plate.start()
+
+    pylaxz.printf('Network is Loaded.\nThree threads started.', _int=1)

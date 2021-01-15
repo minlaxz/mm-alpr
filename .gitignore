@@ -16,3 +16,4 @@ libdarknet.so.cpu
 libdarknet.so
 anpr_mm/.vscode
 code_tests/
+tests/network

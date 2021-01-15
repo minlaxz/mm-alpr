@@ -11,20 +11,27 @@ if not os.path.exists(cfg):
 
 class Settings:
     def __init__(self):
+        pylaxz.printf("settings are initialized.", _int=1)
         self.parser = SafeConfigParser()
         self.parser.read(cfg)
 
     @property
     def appconfigs(self):
-        self._debug = True if (self.parser.get(section, "debug") in ["True"]) else False
-        self._nodetect = (
-            True if (self.parser.get(section, "test") in ["True"]) else False
-        )
-        self._hostcamera = (
-            True if (self.parser.get(section, "localrun") in ["True"]) else False
-        )
-        self._gui = True if (self.parser.get(section, "gui") in ["True"]) else False
+        self._debug = True if (self.parser.get(section, "debug") == "1") else False
+        self._nodetect = True if (self.parser.get(section, "test") == "1") else False
+        self._hostcamera = True if (self.parser.get(section, "localrun") == "1") else False
+        self._gui = True if (self.parser.get(section, "gui") == "1") else False
         return (self._debug, self._nodetect, self._hostcamera, self._gui)
+
+    @property
+    def get_network(self):
+        cfg = self.parser.get("network", "cfg")
+        data = self.parser.get("network", "data")
+        weight = self.parser.get("network", "weight")
+        thresh = self.parser.get("network", "thresh")
+        batch_size = self.parser.get("network","batch_size")
+        return ({"cfg":cfg, "data":data, "weight":weight, "thresh":thresh, "batch_size":batch_size})
+
 
     @appconfigs.setter
     def appconfigs(self, *arg):
@@ -67,8 +74,9 @@ class Settings:
 
 
 if __name__ == "__main__":
-    settings = Settings()
-    settings.show(settings.appconfigs)
+    s = Settings()
+    s.show(s.get_network)
+    s.show(s.appconfigs)
 
     if input("Edit [y/N] : ") == "y":
         pylaxz.printf("Example yyyy or yynn. (only small and be exactly 4)", _int=True)

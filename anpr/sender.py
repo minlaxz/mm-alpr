@@ -65,7 +65,7 @@ class Sender:
 
     def init_camera(self):
         self.camera = cv2.VideoCapture(0)
-        self.camera.set(3, self.size['h'])
+        self.camera.set(3, self.size['w'])
         self.camera.set(4, self.size['h'])
         pylaxz.printf("Camera is startup up, please wait.", _int=True)
         time.sleep(3.0)
