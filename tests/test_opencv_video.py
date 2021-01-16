@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(f'rtsp://192.168.0.146:8080/h264_pcm.sdp')
 
 while(True):
     # Capture frame-by-frame
