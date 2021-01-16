@@ -4,9 +4,9 @@ import cv2
 import tkinter as tk
 from PIL import Image, ImageTk
 from threading import Thread, Event
-from configs.settings import Settings
+from .configs.settings import Settings
 import pylaxz
-import darknet
+from . import darknet
 
 
 """to handle multi thread processes."""
