@@ -1,6 +1,6 @@
 dataset
 .ipynb_checkpoints
-*.jpg
+# *.jpg
 *.png
 rtsp.pid
 __pycache__
