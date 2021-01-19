@@ -64,8 +64,7 @@ frameQueue = QueueFPS()
 def frameGetThread():
     global frameQueue
     while process:
-        # ret , img = cap.read()
-        name , img = 
+        ret , img = cap.read()
         if not ret:
             pylaxz.printf('frame is not ready', _int=1, _shell=1)
             break

@@ -1,9 +1,11 @@
 import cv2 as cv
 import cv2
+import imzmqx
 import numpy as np
 import time, sys
 from threading import Thread
 import utilsx
+import pylaxz
 
 if sys.version_info[0] == 2: # for python 2
     import Queue as queue
@@ -16,6 +18,9 @@ frameworks = ['caffe', 'tensorflow', 'torch', 'darknet', 'dldt']
 # this can  adjust from callback function
 confThreshold = 0.5
 nmsThreshold = 0.4
+
+w = 512
+h = 416
 
 # network configs
 model = "./network/yolov3-tiny_obj_best.weights"
@@ -164,7 +169,17 @@ def callback(pos):
 
 cv.createTrackbar('confi thrsh, %', winName, int(confThreshold * 100), 99, callback)
 
-cap = cv.VideoCapture(0)
+def load_cam():
+    cap = cv.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+    pylaxz.printf('Starting up camera, plz wait...', _int=1)
+    time.sleep(2.0)
+    return cap
+
+def load_hub():
+    cap = imzmqx.ImageSender()
+    return cap
 
 class QueueFPS(queue.Queue):
     def __init__(self):
@@ -181,6 +196,7 @@ class QueueFPS(queue.Queue):
     def getFPS(self):
         return self.counter / (time.time() - self.startTime)
 
+cap = load_hub()
 process = True
 
 #
