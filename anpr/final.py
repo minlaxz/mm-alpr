@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import time, sys
 from threading import Thread
+import utilsx
 
 if sys.version_info[0] == 2: # for python 2
     import Queue as queue
@@ -107,91 +108,12 @@ def postprocess(frame, outs):
         # drawPred(classIds[i], confidences[i], left, top, left + width, top + height)
         frame = frame[top:top+height ,left:left+width]
 
+def findseg(lp_frame):
 
-def proj(preprocessed_img):
-    projs = np.sum(preprocessed_img, 1)
-    m = np.max(projs)
-    h, w = preprocessed_img.shape[:2]
-    result = np.zeros((h,w))
-    # Draw a line for each row
-    for row in range(h):
-        cv2.line(result, (0,row), (int(projs[row]*w/m),row), (255,255,255), 1)
+    upper_letters , lower_letters = utilsx.get_seg_char(lp_frame=lp_frame, verbose=1)
 
-    return (result, projs)
-    # return projs
 
-def proj_points(projs, ratio=5, verbose=False, bias=10):
-    length_proj = len(projs)
-    if True:
-        # magic happened
-        fs = int(bias) # first select point with bias
-        fe = int (length_proj/ratio) + bias # (1 / ratio ) + bias 
-        s =  int(fe + bias / 2) # (1 / ratio ) + bias + bias / 2
-        e =  int(( 2 * s ) - bias) # (2 / ratio ) - bias
-        if verbose : print(fs, fe, s, e)
-
-        first_min_pt = min(projs[fs:fe])
-        second_min_pt = min(projs[s:e])
-        
-        if verbose : print(first_min_pt, second_min_pt)
-            
-        first_ref_pt = np.where(projs == first_min_pt)
-        second_ref_pt = np.where(projs == second_min_pt)
-        
-        if verbose : print(first_ref_pt, second_ref_pt)
-        if len(second_ref_pt) < 3 :
-            # narrow bandwidh
-            second_ref_pt = list(range(second_ref_pt[0][0] - 5 , second_ref_pt[0][0] + 5 ))
-    
-        if len(first_ref_pt) < 3:
-            # narrow bandwidh
-            first_ref_pt = list(range(first_ref_pt[0][0] - 5 ,first_ref_pt[0][0] + 5 ))
-    
-    return (first_ref_pt,second_ref_pt)
-
-def sort_contours(cnts,reverse = False):
-    i = 0
-    boundingBoxes = [cv2.boundingRect(c) for c in cnts]
-    (cnts, boundingBoxes) = zip(*sorted(zip(cnts, boundingBoxes),
-                                        key=lambda b: b[1][i], reverse=reverse))
-    return cnts
-
-def find_seg(frame, kernel=(3,3)):
-    blurred = cv2.GaussianBlur(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), kernel, 0)
-    binary = cv2.threshold(src=blurred, thresh=125, maxval=255, type=cv2.THRESH_OTSU)[1]
-    kernel5 = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 1))
-    dia_img = cv2.morphologyEx(binary, cv2.MORPH_DILATE, kernel5)
-    cv2.imwrite('detected.jpg', dia_img)
-
-    res ,  _ = proj(dia_img)
-    cv2.imwrite('res.jpg', res)
-
-    # first_ref_pt,second_ref_pt = proj_points(projs, ratio=5, verbose=True , bias=30)
-
-    # upper = dia_img[first_ref_pt[0]:second_ref_pt[-1]]
-    # lower = dia_img[second_ref_pt[-1]: len(projs)-15]
-
-    # cont, _  = cv2.findContours(lower, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    # digit_w, digit_h = 30, 60
-    # copy_one = lower.copy()
-    # crop_characters = []
-    # for c in sort_contours(cont):
-    #     (x, y, w, h) = cv2.boundingRect(c)
-    #     ratio = h/w
-    #     if 1<=ratio<=3.5: # Only select contour with defined ratio
-    #         if h/lower.shape[0]>=0.5: # Select contour which has the height larger than 50% of the plate
-    #             # Draw bounding box arroung digit number
-    #             cv2.rectangle(copy_one, (x, y), (x + w, y + h), (0, 255,0), 2)
-
-    #             # Sperate number and gibe prediction
-    #             curr_num = dia_img[y:y+h,x:x+w]
-    #             curr_num = cv2.resize(curr_num, dsize=(digit_w, digit_h))
-    #             _, curr_num = cv2.threshold(curr_num, 220, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    #             crop_characters.append(curr_num)
-        
-    # print("Detect {} letters...".format(len(crop_characters)))
-
-def my_process(frame , out):
+def segpostprocess(frame , out):
     frameHeight, frameWidth = frame.shape[:2]
 
     layerNames = net.getLayerNames()
@@ -229,8 +151,8 @@ def my_process(frame , out):
         top = box[1] # y
         width = box[2]
         height = box[3]
-        find_seg(frame[top:top+height, left:left+width])
-        # print('region: ' , str(top), str(top+height) , str(left), str(left+width))
+
+        findseg(frame[top:top+height, left:left+width])
 
 # Process inputs
 winName = 'Deep learning object detection in OpenCV'
@@ -338,7 +260,7 @@ while cv.waitKey(1) < 0:
         outs = predictionsQueue.get_nowait()
         frame = processedFramesQueue.get_nowait()
 
-        my_process(frame, outs)
+        segpostprocess(frame, outs)
 
         # Put efficiency information.
         if predictionsQueue.counter > 1:
