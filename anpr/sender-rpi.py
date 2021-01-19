@@ -22,6 +22,7 @@ swap_rgb = False
 prev = 0
 now = 0
 
+detection_server = '192.168.0.16'
 
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
@@ -33,7 +34,7 @@ else:
     pylaxz.printf('Starting up camera, plz wait...', _int=1)
     time.sleep(2.0)
 
-connect_to = "tcp://{}:5555".format('localhost')
+connect_to = "tcp://{0}:5555".format(detection_server)
 image_sender = imzmqx.ImageSender(connect_to=connect_to)   
 time.sleep(1.0)
 
@@ -115,7 +116,7 @@ while cv2.waitKey(1) < 0:
 
     except (KeyboardInterrupt,SystemExit):
         pylaxz.printf('System exited.', _int=1)
-        break # idk process has to be killed with force
+        break 
 
 process = False
 frameThread.join()
@@ -124,5 +125,5 @@ if cap.isOpened():
     cap.release()
     print('Camera is Released.')
 
-exit()
+exit() # idk process has to be killed with force
 # fps = '%.2f' % (1 / (now - prev))
