@@ -13,10 +13,10 @@ else:
     import queue
 
 # for various frameworks, we just use darknet.
-frameworks = ['caffe', 'tensorflow', 'torch', 'darknet', 'dldt']
+# frameworks = ['caffe', 'tensorflow', 'torch', 'darknet', 'dldt']
 
 # this can  adjust from callback function
-confThreshold = 0.5
+confThreshold = 0.7
 nmsThreshold = 0.4
 
 w = 512
@@ -26,10 +26,12 @@ h = 416
 model = "./network/yolov3-tiny_obj_best.weights"
 cfg = "./network/yolov3-tiny_obj.cfg"
 labels = "./network/obj.names"
-# variables
+
+# program variables
 asyncN = 0         # wont use aysnc forward
 mean = [0,0,0]     # default
 scale = 1.0        # default
+
 # Load names of classes, or just 'plate'
 with open(labels, 'rt') as f:
     classes = f.read().rstrip('\n').split('\n')
@@ -52,66 +54,6 @@ net.setPreferableTarget(target)
 
 outNames = net.getLayerNames()
 outNames = [outNames[i[0] - 1] for i in net.getUnconnectedOutLayers()]
-
-def postprocess(frame, outs):
-    frameHeight, frameWidth = frame.shape[:2]
-    
-    def drawPred(classId, conf, left, top, right, bottom):
-        # Draw a bounding box.
-        cv.rectangle(frame, (left, top), (right, bottom), (0, 255, 0))
-
-        label = '%.2f' % conf
-
-        # Print a label of class.
-        if classes:
-            assert(classId < len(classes))
-            label = '%s: %s' % (classes[classId], label)
-
-        labelSize, baseLine = cv.getTextSize(label, cv.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-        top = max(top, labelSize[1])
-        cv.rectangle(frame, (left, top - labelSize[1]), (left + labelSize[0], top + baseLine), (255, 255, 255), cv.FILLED)
-        cv.putText(frame, label, (left, top), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
-
-    layerNames = net.getLayerNames()
-    lastLayerId = net.getLayerId(layerNames[-1])
-    lastLayer = net.getLayer(lastLayerId)
-
-    classIds = []
-    confidences = []
-    boxes = []
-    if lastLayer.type == 'Region':
-        # Network produces output blob with a shape NxC where N is a number of
-        # detected objects and C is a number of classes + 4 where the first 4
-        # numbers are [center_x, center_y, width, height]
-        for out in outs:
-            for detection in out:
-                scores = detection[5:]
-                classId = np.argmax(scores)
-                confidence = scores[classId]
-                if confidence > confThreshold:
-                    center_x = int(detection[0] * frameWidth)
-                    center_y = int(detection[1] * frameHeight)
-                    width = int(detection[2] * frameWidth)
-                    height = int(detection[3] * frameHeight)
-                    left = int(center_x - width / 2)
-                    top = int(center_y - height / 2)
-                    classIds.append(classId)
-                    confidences.append(float(confidence))
-                    boxes.append([left, top, width, height])
-    else:
-        print('Unknown output layer type: ' + lastLayer.type)
-        exit()
-
-    indices = np.arange(0, len(classIds))
-
-    for i in indices:
-        box = boxes[i]
-        left = box[0] # x
-        top = box[1] # y
-        width = box[2]
-        height = box[3]
-        # drawPred(classIds[i], confidences[i], left, top, left + width, top + height)
-        frame = frame[top:top+height ,left:left+width]
 
 def findseg(lp_frame):
 
@@ -178,7 +120,7 @@ def load_cam():
     return cap
 
 def load_hub():
-    cap = imzmqx.ImageSender()
+    cap = imzmqx.ImageHub()
     return cap
 
 class QueueFPS(queue.Queue):
@@ -207,10 +149,16 @@ def framesThreadBody():
     global framesQueue, process
 
     while process:
-        hasFrame, frame = cap.read()
-        if not hasFrame:
-            break
+        # hasFrame, frame = cap.read()
+        # if not hasFrame:
+        #     break
+        _ , frame = cap.recv_image()
         framesQueue.put(frame)  # <- get frame and put to queue object
+        cap.send_reply(b"OK")
+    
+    _  = cap.recv_image()
+    cap.send_reply(b"STOP")
+    print('framesThreadBody exits.')
 
 #
 # Frames processing thread
