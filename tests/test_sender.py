@@ -41,9 +41,9 @@ while cv2.waitKey(1) < 0 :
             break
         bgr = swapRGB(frame)
         now = time.time()
-        print('capturing FPS: ' , 1/ now - prev)
+        print('capturing FPS: ' , 1/ (now - prev))
         repl = image_sender.send_image('rpi', bgr)
-        print('sending FPS: ', 1 / time.time() - now)
+        print('sending FPS: ', 1 / (time.time() - now))
         if repl == b'STOP':
             break
         else: 
