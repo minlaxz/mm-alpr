@@ -28,7 +28,7 @@ connect_to = "tcp://{0}:5555".format(detection_server)
 image_sender = imzmqx.ImageSender(connect_to=connect_to)   
 time.sleep(1.0)
 
-def swapRGB(bgr) -> object:
+def swapRGB(bgr):
     img = cv2.resize(bgr, (w,h), interpolation=cv2.INTER_LINEAR )
     return cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
 
