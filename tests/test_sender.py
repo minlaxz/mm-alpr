@@ -13,6 +13,7 @@ w = 512
 h = 416
 detection_server = '192.168.0.16'
 count = 0
+x = 1
 
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
@@ -32,22 +33,25 @@ def swapRGB(bgr):
     img = cv2.resize(bgr, (w,h), interpolation=cv2.INTER_LINEAR )
     return cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
 
+prev = time.time()
+
 while cv2.waitKey(1) < 0 :
     try:
-        prev = time.time()
+        count +=1
         ret , frame = cap.read()
         if not ret:
             print('frame is not ready')
             break
         bgr = swapRGB(frame)
         now = time.time()
-        print('capturing FPS: ' , 1/ (now - prev))
+        if (now - prev) > x:
+            print('capturing FPS: ' , count / (now - prev))
+            count = 0
+            prev = time.time()
         repl = image_sender.send_image('rpi', bgr)
-        print('sending FPS: ', 1 / (time.time() - now))
+        # print('sending FPS: ', 1 / (time.time() - now))
         if repl == b'STOP':
             break
-        else: 
-            count +=1
         print('Count : ', count)
     except KeyboardInterrupt:
         break
