@@ -45,13 +45,12 @@ while cv2.waitKey(1) < 0 :
         bgr = swapRGB(frame)
         now = time.time()
         if (now - prev) > x:
-            print('capturing FPS: ' , count / (now - prev))
+            print('Capturing FPS: ' , count / (now - prev))
+            print('Capturing FPS: ' + str(count / (now - prev)), end="\r")
             count = 0
             prev = time.time()
         repl = image_sender.send_image('rpi', bgr)
-        # print('sending FPS: ', 1 / (time.time() - now))
         if repl == b'STOP':
             break
-        print('Count : ', count)
     except KeyboardInterrupt:
         break
