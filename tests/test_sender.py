@@ -46,10 +46,11 @@ while cv2.waitKey(1) < 0 :
         now = time.time()
         if (now - prev) > x:
             print('Capturing FPS: ' , count / (now - prev))
-            print('Capturing FPS: ' + str(count / (now - prev)), end="\r")
+            # print('Capturing FPS: ' + str(count / (now - prev)), end="\r")
             count = 0
             prev = time.time()
         repl = image_sender.send_image('rpi', bgr)
+        print('Streaming FPS: ' + str(count / (time.time() - now)))
         if repl == b'STOP':
             break
     except KeyboardInterrupt:
