@@ -18,3 +18,4 @@ while True:
 
 cv2.destroyAllWindows()
 
+# FPS 15

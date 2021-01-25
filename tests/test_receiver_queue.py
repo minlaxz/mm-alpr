@@ -1,7 +1,5 @@
-import imzmqx
-import cv2, time, queue
+import imzmqx, cv2, time, queue
 from threading import Thread
-import pylaxz
 
 cap = imzmqx.ImageHub()
 
