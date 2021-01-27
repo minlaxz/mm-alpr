@@ -1,4 +1,4 @@
-import imzmqx, cv2, time, queue
+import imzmqx, cv2, time, queue, pylaxz
 from threading import Thread
 
 cap = imzmqx.ImageHub()
@@ -63,10 +63,7 @@ while True:
         break
 
 process = False
-
 # main thread is waiting for t1 thread to be accomplished.
 # https://stackoverflow.com/a/15086113/10582082
 t1.join()
-
-# cv2.destroyAllWindows()
 
