@@ -26,7 +26,8 @@ def getImageThread():
     global framesQueue, process
     while process:
         _, frame = cap.recv_image()
-        framesQueue.put(frame)
+        decimg = cv2.imdecode(frame, 1)
+        framesQueue.put(decimg)
         cap.send_reply(b"OK")
 
     # zmq.error.ZMQError: Operation cannot be accomplished in current state

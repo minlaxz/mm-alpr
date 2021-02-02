@@ -22,6 +22,8 @@ swap_rgb = False
 prev = 0
 now = 0
 
+encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
+
 detection_server = '192.168.0.16'
 
 cap = cv2.VideoCapture(0)
@@ -85,7 +87,10 @@ def processThread():
             frame = frameQueue.get_nowait()
             if not frame is None:
                 img = cv2.resize(frame, (w,h), interpolation=cv2.INTER_LINEAR)
-                processedQueue.put(cv2.cvtColor(img, cv2.COLOR_BGR2RGB) if swap_rgb else img)
+                result, encimg = cv2.imencode('.jpg', img, encode_param)
+                if result:
+                    processedQueue.put('.jpg', encimg, encode_param)
+                # processedQueue.put(cv2.cvtColor(img, cv2.COLOR_BGR2RGB) if swap_rgb else img)
         except queue.Empty:
             pass
         except Exception as e:
