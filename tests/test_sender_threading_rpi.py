@@ -89,7 +89,9 @@ def processThread():
                 img = cv2.resize(frame, (w,h), interpolation=cv2.INTER_LINEAR)
                 result, encimg = cv2.imencode('.jpg', img, encode_param)
                 if result:
-                    processedQueue.put('.jpg', encimg, encode_param)
+                    processedQueue.put(encimg)
+                else:
+                    processedQueue.put(img)
                 # processedQueue.put(cv2.cvtColor(img, cv2.COLOR_BGR2RGB) if swap_rgb else img)
         except queue.Empty:
             pass
